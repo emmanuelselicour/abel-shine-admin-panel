@@ -1,27 +1,29 @@
+// database.js - Version PostgreSQL
 const { Sequelize } = require('sequelize');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
-const sequelize = new Sequelize(
-    process.env.DB_NAME || 'abel_shine_db',
-    process.env.DB_USER || 'root',
-    process.env.DB_PASSWORD || '',
-    {
-        host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 3306,
-        dialect: 'mysql',
-        logging: false,
-        pool: {
-            max: 5,
-            min: 0,
-            acquire: 30000,
-            idle: 10000
+// Utilisation de l'URL de connexion PostgreSQL
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    protocol: 'postgres',
+    dialectOptions: {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false // Nécessaire pour Render
         }
+    },
+    logging: false,
+    pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
     }
-);
+});
 
-// Définition des modèles
+// Définition des modèles (inchangée)
 const Inscription = sequelize.define('Inscription', {
     id: {
         type: Sequelize.INTEGER,
@@ -51,10 +53,15 @@ const Contact = sequelize.define('Contact', {
     createdAt: { type: Sequelize.DATE, defaultValue: Sequelize.NOW }
 });
 
-// Création des tables
+// Test de la connexion
+sequelize.authenticate()
+    .then(() => console.log('✅ Connexion à PostgreSQL établie avec succès.'))
+    .catch(err => console.error('❌ Impossible de se connecter à PostgreSQL:', err));
+
+// Synchronisation
 sequelize.sync({ alter: true })
-    .then(() => console.log('Tables créées avec succès'))
-    .catch(err => console.error('Erreur création tables:', err));
+    .then(() => console.log('✅ Tables synchronisées avec succès'))
+    .catch(err => console.error('❌ Erreur synchronisation tables:', err));
 
 module.exports = sequelize;
 module.exports.Inscription = Inscription;
