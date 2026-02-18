@@ -1,4 +1,4 @@
-// server.js - Version corrigée avec gestion robuste des sessions
+// server.js - Version finale avec toutes les corrections
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -24,25 +24,30 @@ const pgPool = new Pool({
     idleTimeoutMillis: 30000
 });
 
-// Middleware de sécurité (désactivé partiellement pour le développement)
+// Middleware de sécurité
 app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: false
 }));
 
-// Configuration CORS élargie
+// Configuration CORS pour accepter les requêtes du frontend
 app.use(cors({
-    origin: true, // Accepte toutes les origines en développement
+    origin: [
+        'https://emmanuelselicour.github.io',
+        'http://localhost:5500',
+        'http://127.0.0.1:5500',
+        'https://abel-shine-admin-panel.onrender.com'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Rate limiting
+// Rate limiting pour éviter les abus
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limite de 100 requêtes par IP
     message: 'Trop de requêtes, veuillez réessayer plus tard.',
     standardHeaders: true,
     legacyHeaders: false
@@ -54,7 +59,12 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configuration des sessions AMÉLIORÉE
+// Route pour servir l'icône du site
+app.get('/favicon.ico', (req, res) => {
+    res.redirect('https://i.postimg.cc/P5BS0g8h/IMG-20260214-WA0014.jpg');
+});
+
+// Configuration des sessions avec stockage PostgreSQL
 app.use(session({
     store: new pgSession({
         pool: pgPool,
@@ -63,22 +73,22 @@ app.use(session({
         pruneSessionInterval: 60
     }),
     secret: process.env.SESSION_SECRET || 'abel-shine-secret-2026-change-this-in-production',
-    resave: true, // Changé à true pour forcer la sauvegarde
-    saveUninitialized: true, // Changé à true pour créer une session même vide
+    resave: true,
+    saveUninitialized: true,
     cookie: { 
-        secure: false, // Mis à false pour le développement (HTTP)
+        secure: false, // Mettre à true en production avec HTTPS
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 jours
         sameSite: 'lax'
     },
     name: 'abel-shine.sid',
-    rolling: true // Renouvelle le cookie à chaque requête
+    rolling: true
 }));
 
-// Middleware pour logger les sessions (debug)
+// Middleware pour logger les sessions (utile pour debug)
 app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     console.log('Session ID:', req.sessionID);
-    console.log('Session data:', req.session);
     console.log('Is Authenticated:', req.session.isAuthenticated);
     next();
 });
@@ -88,16 +98,28 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // ========== ROUTES API ==========
+
+// Route pour recevoir les inscriptions
 app.post('/api/inscriptions', async (req, res) => {
     try {
         console.log('📝 Nouvelle inscription reçue:', req.body);
         
         const { nom, whatsapp, email, formation, message } = req.body;
         
+        // Validation des données
         if (!nom || !whatsapp || !email || !formation) {
             return res.status(400).json({ 
                 success: false, 
                 error: 'Tous les champs requis doivent être remplis' 
+            });
+        }
+
+        // Validation email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Format d\'email invalide'
             });
         }
 
@@ -108,6 +130,8 @@ app.post('/api/inscriptions', async (req, res) => {
             formation: formation,
             message: message || ''
         });
+
+        console.log('✅ Inscription enregistrée avec ID:', inscription.id);
 
         res.status(200).json({ 
             success: true, 
@@ -123,16 +147,27 @@ app.post('/api/inscriptions', async (req, res) => {
     }
 });
 
+// Route pour recevoir les messages de contact
 app.post('/api/contact', async (req, res) => {
     try {
         console.log('📬 Nouveau message contact reçu:', req.body);
         
         const { nom, whatsapp, email, message } = req.body;
         
+        // Validation des données
         if (!nom || !whatsapp || !email || !message) {
             return res.status(400).json({ 
                 success: false, 
                 error: 'Tous les champs sont requis' 
+            });
+        }
+
+        // Validation email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Format d\'email invalide'
             });
         }
 
@@ -142,6 +177,8 @@ app.post('/api/contact', async (req, res) => {
             email: email,
             message: message
         });
+
+        console.log('✅ Message contact enregistré avec ID:', contact.id);
 
         res.status(200).json({ 
             success: true, 
@@ -157,10 +194,12 @@ app.post('/api/contact', async (req, res) => {
     }
 });
 
+// Route pour mettre à jour le statut d'une inscription
 app.put('/api/inscriptions/:id/status', async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
+        
         await Inscription.update({ status }, { where: { id } });
         res.json({ success: true });
     } catch (error) {
@@ -169,6 +208,7 @@ app.put('/api/inscriptions/:id/status', async (req, res) => {
     }
 });
 
+// Route pour marquer un message comme lu
 app.put('/api/contact/:id/read', async (req, res) => {
     try {
         const { id } = req.params;
@@ -181,6 +221,8 @@ app.put('/api/contact/:id/read', async (req, res) => {
 });
 
 // ========== ROUTES ADMIN ==========
+
+// Middleware d'authentification
 const requireAuth = (req, res, next) => {
     console.log('Vérification auth - Session:', req.session);
     console.log('isAuthenticated:', req.session.isAuthenticated);
@@ -197,7 +239,6 @@ const requireAuth = (req, res, next) => {
 // Page de login
 app.get('/admin/login', (req, res) => {
     console.log('📄 Affichage page login');
-    // Si déjà authentifié, rediriger vers dashboard
     if (req.session.isAuthenticated) {
         console.log('Utilisateur déjà authentifié, redirection vers dashboard');
         return res.redirect('/admin/dashboard');
@@ -205,22 +246,20 @@ app.get('/admin/login', (req, res) => {
     res.render('login', { error: null });
 });
 
-// Traitement du login (VERSION CORRIGÉE)
+// Traitement du login
 app.post('/admin/login', async (req, res) => {
     console.log('🔐 Tentative de connexion:', req.body);
     
     const { username, password } = req.body;
     
-    // Vérification des identifiants (à personnaliser)
+    // Vérification des identifiants
     if (username === 'abel-shine-admin' && password === 'Abel@2026Shine') {
         console.log('✅ Identifiants corrects');
         
-        // Sauvegarder l'authentification dans la session
         req.session.isAuthenticated = true;
         req.session.username = username;
         req.session.lastLogin = new Date().toISOString();
         
-        // Sauvegarder explicitement la session
         req.session.save((err) => {
             if (err) {
                 console.error('❌ Erreur sauvegarde session:', err);
@@ -230,7 +269,6 @@ app.post('/admin/login', async (req, res) => {
             console.log('✅ Session sauvegardée avec succès');
             console.log('Session après login:', req.session);
             
-            // Rediriger vers le dashboard
             res.redirect('/admin/dashboard');
         });
     } else {
@@ -267,11 +305,17 @@ app.get('/admin/dashboard', requireAuth, async (req, res) => {
         });
 
         const totalInscrits = await Inscription.count();
+        const totalMessages = await Contact.count();
+        const unreadMessages = await Contact.count({
+            where: { status: 'Non lu' }
+        });
         
         res.render('dashboard', {
             todayInscriptions,
             todayContacts,
             totalInscrits,
+            totalMessages,
+            unreadMessages,
             username: req.session.username
         });
     } catch (error) {
@@ -280,6 +324,8 @@ app.get('/admin/dashboard', requireAuth, async (req, res) => {
             todayInscriptions: 0,
             todayContacts: 0,
             totalInscrits: 0,
+            totalMessages: 0,
+            unreadMessages: 0,
             username: req.session.username
         });
     }
@@ -288,26 +334,48 @@ app.get('/admin/dashboard', requireAuth, async (req, res) => {
 // Liste des inscriptions
 app.get('/admin/inscriptions', requireAuth, async (req, res) => {
     try {
+        console.log('📝 Chargement des inscriptions...');
+        
         const inscriptions = await Inscription.findAll({
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            raw: true
         });
+        
+        console.log(`✅ ${inscriptions.length} inscriptions trouvées`);
+        
         res.render('inscriptions', { inscriptions });
     } catch (error) {
-        console.error('Erreur récupération inscriptions:', error);
-        res.render('inscriptions', { inscriptions: [] });
+        console.error('❌ Erreur détaillée dans /admin/inscriptions:', error);
+        console.error('Stack trace:', error.stack);
+        
+        res.status(500).json({ 
+            error: 'Erreur interne du serveur',
+            details: error.message
+        });
     }
 });
 
 // Liste des contacts
 app.get('/admin/contacts', requireAuth, async (req, res) => {
     try {
+        console.log('📬 Chargement des messages de contact...');
+        
         const contacts = await Contact.findAll({
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            raw: true
         });
+        
+        console.log(`✅ ${contacts.length} messages trouvés`);
+        
         res.render('contacts', { contacts });
     } catch (error) {
-        console.error('Erreur récupération contacts:', error);
-        res.render('contacts', { contacts: [] });
+        console.error('❌ Erreur détaillée dans /admin/contacts:', error);
+        console.error('Stack trace:', error.stack);
+        
+        res.status(500).json({ 
+            error: 'Erreur interne du serveur',
+            details: error.message
+        });
     }
 });
 
@@ -324,12 +392,13 @@ app.get('/admin/logout', (req, res) => {
     });
 });
 
-// Route de santé
+// Route de santé pour Render
 app.get('/health', (req, res) => {
     res.status(200).json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        database: 'connected'
     });
 });
 
@@ -338,15 +407,29 @@ app.get('/', (req, res) => {
     res.redirect('/admin/login');
 });
 
+// Route pour tester l'API (debug)
+app.get('/api/test', (req, res) => {
+    res.json({ 
+        message: 'API fonctionnelle',
+        time: new Date().toISOString(),
+        env: process.env.NODE_ENV || 'development'
+    });
+});
+
 // Gestion des erreurs 404
 app.use((req, res) => {
     console.log('404 - Route non trouvée:', req.url);
-    res.status(404).json({ error: 'Route non trouvée' });
+    res.status(404).json({ 
+        error: 'Route non trouvée',
+        path: req.url
+    });
 });
 
 // Gestion globale des erreurs
 app.use((err, req, res, next) => {
     console.error('❌ Erreur serveur:', err);
+    console.error('Stack trace:', err.stack);
+    
     res.status(500).json({ 
         error: 'Erreur interne du serveur',
         message: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -366,10 +449,14 @@ async function startServer() {
         
         // Démarrer le serveur
         app.listen(PORT, '0.0.0.0', () => {
+            console.log('\n=================================');
             console.log(`🚀 Serveur démarré sur le port ${PORT}`);
             console.log(`📊 Panel admin: http://localhost:${PORT}/admin/login`);
             console.log(`🔧 Environnement: ${process.env.NODE_ENV || 'development'}`);
             console.log(`🔑 Identifiants: abel-shine-admin / Abel@2026Shine`);
+            console.log(`🌐 API test: http://localhost:${PORT}/api/test`);
+            console.log(`🩺 Health check: http://localhost:${PORT}/health`);
+            console.log('=================================\n');
         });
     } catch (error) {
         console.error('❌ Erreur démarrage serveur:', error);
