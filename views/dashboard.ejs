@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | ABEL SHINE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        body {
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #c8a2c8, #d4af37);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+        }
+        .logout {
+            color: white;
+            text-decoration: none;
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+        }
+        .container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-card h3 {
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .stat-card .number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #c8a2c8;
+        }
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        .menu-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .menu-card h2 {
+            color: #2d2d2d;
+            margin-bottom: 1rem;
+        }
+        .menu-card p {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+        .badge {
+            background: linear-gradient(135deg, #c8a2c8, #d4af37);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👋 Bienvenue, Admin</h1>
+        <a href="/admin/logout" class="logout">Déconnexion</a>
+    </div>
+    
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Inscriptions aujourd'hui</h3>
+                <div class="number"><%= todayInscriptions %></div>
+            </div>
+            <div class="stat-card">
+                <h3>Messages aujourd'hui</h3>
+                <div class="number"><%= todayContacts %></div>
+            </div>
+            <div class="stat-card">
+                <h3>Total inscrits</h3>
+                <div class="number"><%= totalInscrits %></div>
+            </div>
+        </div>
+
+        <div class="menu-grid">
+            <a href="/admin/inscriptions" class="menu-card">
+                <h2>📝 Inscriptions</h2>
+                <p>Consultez toutes les demandes d'inscription à l'école</p>
+                <span class="badge">Voir les inscriptions</span>
+            </a>
+            <a href="/admin/contacts" class="menu-card">
+                <h2>📬 Messages contact</h2>
+                <p>Consultez tous les messages reçus via le formulaire de contact</p>
+                <span class="badge">Voir les messages</span>
+            </a>
+            <a href="https://emmanuelselicour.github.io/ABEL-SHINE-ECOLE/" class="menu-card" target="_blank">
+                <h2>🌐 Voir le site</h2>
+                <p>Retourner sur le site public d'ABEL SHINE</p>
+                <span class="badge">Visiter le site</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
