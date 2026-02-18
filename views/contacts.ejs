@@ -1,18 +1,21 @@
+<!-- views/contacts.ejs -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messages contact | ABEL SHINE</title>
+    <title>Messages - ABEL SHINE</title>
+    <link rel="icon" type="image/jpg" href="https://i.postimg.cc/P5BS0g8h/IMG-20260214-WA0014.jpg">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         body {
-            background: #f5f5f5;
+            background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
+            min-height: 100vh;
         }
         .header {
             background: linear-gradient(135deg, #c8a2c8, #d4af37);
@@ -21,18 +24,63 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .header h1 {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.8rem;
+        }
+        .header h1 img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid white;
         }
         .back-btn {
             color: white;
             text-decoration: none;
             background: rgba(255,255,255,0.2);
-            padding: 0.5rem 1rem;
+            padding: 0.7rem 1.5rem;
             border-radius: 50px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateX(-5px);
         }
         .container {
-            padding: 2rem;
             max-width: 1400px;
-            margin: 0 auto;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .stats-bar {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 3rem;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+        .stat-value {
+            background: #c8a2c8;
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 50px;
+            font-weight: bold;
         }
         .messages-grid {
             display: grid;
@@ -44,80 +92,165 @@
             border-radius: 20px;
             padding: 1.5rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border-left: 5px solid <%= contact.status === 'Non lu' ? '#c8a2c8' : '#4caf50' %>;
+            border-left: 5px solid #c8a2c8;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+        .message-card.unread {
+            border-left-color: #dc3545;
+            background: #fff8f8;
+        }
+        .message-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
         }
         .message-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f0f0f0;
         }
         .message-date {
             color: #666;
             font-size: 0.9rem;
-        }
-        .message-status {
+            background: #f5f5f5;
             padding: 0.3rem 0.8rem;
             border-radius: 50px;
+        }
+        .message-status {
+            padding: 0.3rem 1rem;
+            border-radius: 50px;
             font-size: 0.9rem;
-            background: <%= contact.status === 'Non lu' ? '#ffebee' : '#e8f5e8' %>;
-            color: <%= contact.status === 'Non lu' ? '#c62828' : '#2e7d32' %>;
+            font-weight: 500;
+        }
+        .status-unread {
+            background: #dc3545;
+            color: white;
+        }
+        .status-read {
+            background: #28a745;
+            color: white;
         }
         .message-name {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: bold;
+            color: #2d2d2d;
             margin-bottom: 0.5rem;
         }
         .message-contact {
-            background: #f5f5f5;
+            background: #f8f8f8;
             padding: 1rem;
-            border-radius: 10px;
+            border-radius: 15px;
             margin: 1rem 0;
         }
         .message-contact a {
             color: #25D366;
             text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .message-contact a:hover {
+            text-decoration: underline;
         }
         .message-content {
             margin: 1rem 0;
             padding: 1rem;
             background: #f9f9f9;
-            border-radius: 10px;
+            border-radius: 15px;
             font-style: italic;
+            color: #444;
+            line-height: 1.6;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .message-actions {
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
         }
         .mark-read {
+            flex: 1;
             background: none;
             border: 2px solid #c8a2c8;
             color: #c8a2c8;
-            padding: 0.5rem 1rem;
+            padding: 0.7rem;
             border-radius: 50px;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: all 0.2s;
-            width: 100%;
-            margin-top: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
         }
         .mark-read:hover {
             background: #c8a2c8;
             color: white;
         }
+        .mark-read:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem;
+            background: white;
+            border-radius: 30px;
+            grid-column: 1/-1;
+        }
+        .empty-state img {
+            width: 100px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        .empty-state p {
+            color: #666;
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>📬 Messages de contact</h1>
-        <a href="/admin/dashboard" class="back-btn">← Retour</a>
+        <h1>
+            <img src="https://i.postimg.cc/GmNfdBVD/IMG-20260214-WA0015.jpg" alt="Logo">
+            📬 Messages de contact
+        </h1>
+        <a href="/admin/dashboard" class="back-btn">← Retour au tableau de bord</a>
     </div>
     
     <div class="container">
+        <!-- Barre de statistiques -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">Total messages :</span>
+                <span class="stat-value"><%= contacts.length %></span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Non lus :</span>
+                <span class="stat-value" style="background: #dc3545;">
+                    <%= contacts.filter(c => c.status === 'Non lu').length %>
+                </span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Lus :</span>
+                <span class="stat-value" style="background: #28a745;">
+                    <%= contacts.filter(c => c.status === 'Lu').length %>
+                </span>
+            </div>
+        </div>
+
+        <!-- Grille des messages -->
         <div class="messages-grid">
             <% if (contacts.length === 0) { %>
-                <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
-                    Aucun message pour le moment
+                <div class="empty-state">
+                    <img src="https://i.postimg.cc/P5BS0g8h/IMG-20260214-WA0014.jpg" alt="Empty">
+                    <p>Aucun message pour le moment</p>
                 </div>
             <% } %>
+            
             <% contacts.forEach(contact => { %>
-                <div class="message-card" id="message-<%= contact.id %>">
+                <div class="message-card <%= contact.status === 'Non lu' ? 'unread' : '' %>" id="message-<%= contact.id %>">
                     <div class="message-header">
                         <span class="message-date">
                             <%= new Date(contact.createdAt).toLocaleDateString('fr-FR', {
@@ -128,22 +261,43 @@
                                 minute: '2-digit'
                             }) %>
                         </span>
-                        <span class="message-status"><%= contact.status %></span>
+                        <span class="message-status <%= contact.status === 'Non lu' ? 'status-unread' : 'status-read' %>">
+                            <%= contact.status %>
+                        </span>
                     </div>
+                    
                     <div class="message-name"><%= contact.nom %></div>
+                    
                     <div class="message-contact">
-                        <div>📞 <a href="https://wa.me/<%= contact.whatsapp.replace(/\s/g, '') %>" target="_blank">
-                            <%= contact.whatsapp %>
-                        </a></div>
-                        <div>✉️ <%= contact.email %></div>
+                        <div style="margin-bottom: 0.5rem;">
+                            📞 <a href="https://wa.me/<%= contact.whatsapp.replace(/[^0-9]/g, '') %>" target="_blank">
+                                <%= contact.whatsapp %>
+                            </a>
+                        </div>
+                        <div>
+                            ✉️ <a href="mailto:<%= contact.email %>"><%= contact.email %></a>
+                        </div>
                     </div>
+                    
                     <div class="message-content">
                         <%= contact.message %>
                     </div>
+                    
                     <% if (contact.status === 'Non lu') { %>
-                        <button class="mark-read" onclick="markAsRead(<%= contact.id %>)">
-                            Marquer comme lu
-                        </button>
+                        <div class="message-actions">
+                            <button class="mark-read" onclick="markAsRead(<%= contact.id %>)">
+                                ✓ Marquer comme lu
+                            </button>
+                            <button class="mark-read" onclick="replyToWhatsapp('<%= contact.whatsapp %>')" style="border-color: #25D366; color: #25D366;">
+                                💬 Répondre WhatsApp
+                            </button>
+                        </div>
+                    <% } else { %>
+                        <div class="message-actions">
+                            <button class="mark-read" onclick="replyToWhatsapp('<%= contact.whatsapp %>')" style="border-color: #25D366; color: #25D366;">
+                                💬 Répondre WhatsApp
+                            </button>
+                        </div>
                     <% } %>
                 </div>
             <% }) %>
@@ -152,17 +306,36 @@
 
     <script>
         async function markAsRead(id) {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '⏳ Mise à jour...';
+            
             try {
                 const response = await fetch(`/api/contact/${id}/read`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' }
                 });
+                
                 if (response.ok) {
+                    // Recharger la page pour voir le changement
                     location.reload();
+                } else {
+                    alert('Erreur lors de la mise à jour');
+                    button.disabled = false;
+                    button.textContent = '✓ Marquer comme lu';
                 }
             } catch (error) {
                 console.error('Erreur:', error);
+                alert('Erreur de connexion');
+                button.disabled = false;
+                button.textContent = '✓ Marquer comme lu';
             }
+        }
+
+        function replyToWhatsapp(whatsapp) {
+            // Nettoyer le numéro (garder seulement les chiffres)
+            const cleanNumber = whatsapp.replace(/[^0-9]/g, '');
+            window.open(`https://wa.me/${cleanNumber}`, '_blank');
         }
     </script>
 </body>
